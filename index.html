@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SolRota – Seu RN, do seu jeito</title>
+  
+  <!-- Leaflet para mapas -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  
+  <!-- Estilos -->
+  <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body>
+
+  <!-- HOME SCREEN -->
+  <div id="screen-home" class="screen active">
+    <div class="sun-bg"></div>
+    <div class="logo">Sol<span>Rota</span></div>
+    <p class="tagline">Seu RN, do seu jeito</p>
+    <div class="home-card">
+      <p>Diga onde está hospedado, quanto tempo tem e com quem vai — a IA monta roteiros com mapa visual, experiências autênticas do RN e refeições no horário certo.</p>
+      <button class="btn-primary" onclick="app.navigate('screen-quiz')">Montar meu roteiro</button>
+      <button class="btn-secondary" onclick="app.navigate('screen-about')">Ver o projeto ↗</button>
+    </div>
+    <div class="waves"></div>
+  </div>
+
+  <!-- QUIZ SCREEN -->
+  <div id="screen-quiz" class="screen">
+    <div class="quiz-header">
+      <button class="back-btn" onclick="app.goBack()">←</button>
+      <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:20%"></div></div>
+      <div class="step-label" id="step-label">Passo 1 de 5</div>
+    </div>
+    <div class="quiz-body">
+
+      <!-- Q1: HOTEL -->
+      <div id="q1" class="q-block">
+        <div class="quiz-question">Onde você está hospedado?</div>
+        <p class="quiz-sub">Vamos montar o roteiro a partir do seu ponto de partida</p>
+        <div class="hotel-input-wrap">
+          <div class="hotel-input-label">Nome do hotel, pousada ou bairro</div>
+          <input 
+            class="hotel-input" 
+            id="hotel-input" 
+            type="text" 
+            placeholder="Ex: Natal Mar Hotel, Pousada da Pipa…" 
+            autocomplete="off" 
+            oninput="app.quiz.onHotelType(this.value)"/>
+          <div class="autocomplete-list" id="ac-list"></div>
+        </div>
+        <div class="hotel-chips" id="hotel-chips"></div>
+        <button class="btn-next" id="next1" onclick="app.quiz.nextQuestion(2)">Próximo →</button>
+      </div>
+
+      <!-- Q2: PESSOAS -->
+      <div id="q2" class="q-block" style="display:none">
+        <div class="quiz-question">Com quem você vai?</div>
+        <p class="quiz-sub">Isso define os melhores destinos e atividades</p>
+        <div class="people-picker">
+          <button class="people-btn" onclick="app.quiz.changePeople(-1)">−</button>
+          <div class="people-count" id="people-count">2</div>
+          <button class="people-btn" onclick="app.quiz.changePeople(1)">+</button>
+        </div>
+        <div class="people-label" id="people-label">2 pessoas</div>
+        <div class="group-options" id="group-options"></div>
+        <button class="btn-next" id="next2" onclick="app.quiz.nextQuestion(3)">Próximo →</button>
+      </div>
+
+      <!-- Q3: DIAS + PERÍODO -->
+      <div id="q3" class="q-block" style="display:none">
+        <div class="quiz-question">Quantos dias e qual período?</div>
+        <p class="quiz-sub">Vamos montar o roteiro exato pra sua disponibilidade</p>
+        <div class="days-picker">
+          <button class="days-btn" onclick="app.quiz.changeDays(-1)">−</button>
+          <div class="days-count" id="days-count">1</div>
+          <button class="days-btn" onclick="app.quiz.changeDays(1)">+</button>
+        </div>
+        <div class="days-label" id="days-label">1 dia</div>
+        <div class="period-grid" id="period-grid"></div>
+        <div class="period-note" id="period-note" style="display:none"></div>
+        <button class="btn-next" id="next3" onclick="app.quiz.nextQuestion(4)">Próximo →</button>
+      </div>
+
+      <!-- Q4: MOOD -->
+      <div id="q4" class="q-block" style="display:none">
+        <div class="quiz-question">O que você quer sentir?</div>
+        <p class="quiz-sub">Escolha o clima do roteiro</p>
+        <div class="option-grid" id="mood-grid"></div>
+        <button class="btn-next" id="next4" onclick="app.quiz.nextQuestion(5)">Próximo →</button>
+      </div>
+
+      <!-- Q5: REFEIÇÕES -->
+      <div id="q5" class="q-block" style="display:none">
+        <div class="quiz-question" id="q5-title">Preferências de refeição</div>
+        <p class="quiz-sub" id="q5-sub">Com base no período escolhido, selecione o que quiser incluir</p>
+        <div class="meal-info-bar" id="meal-info-bar" style="display:none">
+          <span>☀️</span><span id="meal-info-text"></span>
+        </div>
+        <div class="option-grid" id="meal-grid"></div>
+        <div id="meal-subs"></div>
+        <button class="btn-next enabled" onclick="app.quiz.generateItinerary()">Gerar meu roteiro ✨</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- LOADING SCREEN -->
+  <div id="screen-loading" class="screen">
+    <div class="loading-sun">☀️</div>
+    <div class="loading-title">Montando seu roteiro…</div>
+    <div class="loading-sub">A IA está pensando nas melhores experiências do RN pra você</div>
+    <div class="loading-steps" id="loading-steps"></div>
+  </div>
+
+  <!-- RESULT SCREEN -->
+  <div id="screen-result" class="screen">
+    <div class="result-header">
+      <div class="result-badge">✦ Roteiro gerado por IA</div>
+      <div class="result-title" id="result-title">Seu roteiro no RN</div>
+      <div class="result-subtitle" id="result-subtitle"></div>
+      <div class="result-tags" id="result-tags"></div>
+    </div>
+    <div class="day-tabs" id="day-tabs"></div>
+    <div class="result-body">
+      <div class="section-title">Roteiro no mapa</div>
+      <div class="map-card">
+        <div class="map-card-header">
+          <div>
+            <div class="map-card-title" id="map-title">📍 Carregando…</div>
+            <div class="map-card-sub" id="map-sub"></div>
+          </div>
+        </div>
+        <div id="map"></div>
+        <div class="map-legend">
+          <div class="legend-item"><div class="legend-dot" style="background:#1A1A2E"></div>Hotel</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#F5A623"></div>Passeio</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#E74C3C"></div>Refeição</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#0A7EA4"></div>Natureza</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#7C3AED"></div>Noturno</div>
+        </div>
+      </div>
+      <div class="section-title">Passo a passo</div>
+      <div class="timeline" id="timeline-content"></div>
+      <div class="cost-card">
+        <div class="cost-icon">💰</div>
+        <div>
+          <div class="cost-label">Estimativa por dia</div>
+          <div class="cost-value" id="cost-value">R$ 90 – 140</div>
+          <div class="cost-detail" id="cost-detail"></div>
+        </div>
+      </div>
+      <div class="dica-card">
+        <div class="dica-title">🗣️ Dica de quem é daqui</div>
+        <div class="dica-text" id="dica-text"></div>
+      </div>
+      <div class="chat-area">
+        <div class="chat-label">✦ Ajustar com a IA</div>
+        <div class="ai-bubble" id="ai-bubble"></div>
+        <div class="chat-input-row">
+          <input type="text" class="chat-input" id="chat-input" placeholder="Ex: quero algo mais próximo do hotel…"/>
+          <button class="chat-send" onclick="app.result.sendChat()">→</button>
+        </div>
+        <div style="margin-top:10px" id="chat-suggestions"></div>
+      </div>
+      <button class="btn-refazer" onclick="app.navigate('screen-quiz')">↩ Refazer do zero</button>
+    </div>
+  </div>
+
+  <!-- ABOUT SCREEN -->
+  <div id="screen-about" class="screen">
+    <button class="about-back" onclick="app.navigate('screen-home')">← Voltar</button>
+    <div class="about-logo">Sol<span>Rota</span></div>
+    <div class="about-tagline">Hackathon do Sol 2026 · Trilha Turismo</div>
+    <div class="pitch-block">
+      <div class="pitch-label">O problema</div>
+      <div class="pitch-text">O turista chega em Natal e vai só pra Ponta Negra. Quem vai pra Pipa não sabe que tem muito mais além do mirante. Apps genéricos recomendam o popular, não o autêntico e próximo.</div>
+    </div>
+    <div class="pitch-block">
+      <div class="pitch-label">A solução</div>
+      <div class="pitch-text">SolRota usa IA pra criar roteiros personalizados por dia e período, com mapa saindo do hotel, atividades adequadas ao grupo e refeições automáticas baseadas no horário — sem perguntas desnecessárias.</div>
+    </div>
+    <div class="metric-row" id="metrics"></div>
+    <div class="pitch-block">
+      <div class="pitch-label">Tecnologia</div>
+      <div class="pitch-text">App 100% web · IA generativa via API · Mapa interativo com rota real · Base de 60+ acomodações do RN · Período e grupo determinam roteiro e refeições automaticamente</div>
+    </div>
+    <div style="margin-bottom:40px"><button class="btn-primary" onclick="app.navigate('screen-home')">Ver o app funcionando →</button></div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/quiz.js"></script>
+  <script src="assets/js/result.js"></script>
+  <script src="assets/js/app.js"></script>
+
+</body>
+</html>
